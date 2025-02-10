@@ -1,2 +1,6 @@
-data/
+# データファイルを Git 管理対象外にする
+data/raw/**/*.bin
+data/raw/**/*.pkl
+
+# macOS のシステムファイルを除外
 .DS_Store
