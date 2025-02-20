@@ -1,0 +1,5 @@
+/*
+!/common/
+/common/data/html/
+!.gitignore
+!package-lock.json
