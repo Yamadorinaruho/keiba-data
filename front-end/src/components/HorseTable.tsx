@@ -4,18 +4,29 @@ import { useEffect, useState } from 'react';
 import { Horse } from '@/types';
 
 export default function HorseTable() {
-  const [horses, setHorses] = useState<Horse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentRaceIndex, setCurrentRaceIndex] = useState(0); // 現在のレースインデックス(0から始まる)
+  const [horses, setHorses] = useState<Horse[]>([]); // 馬データ
+  const [loading, setLoading] = useState(true); // ローディング中かどうか
+  const [error, setError] = useState<string | null>(null); // エラーが発生したかどうか
+  const [currentRaceIndex, setCurrentRaceIndex] = useState(0); // 現在のレースインデックス
+  const [betAmounts, setBetAmounts] = useState<{[key: string]: number}>({}); // 掛金
+  const [userBalance, setUserBalance] = useState(20000); // ユーザーの所持金
+  const [aiBalance, setAiBalance] = useState(18000); // AIの所持金
+  const [totalBet, setTotalBet] = useState(0); // 合計掛金
 
-  useEffect(() => {
-    async function fetchHorses() {
+  useEffect(() => { // レースデータを取得
+    async function fetchHorses() { // APIリクエスト
       try {
         const response = await fetch('/api/races');
         if (!response.ok) throw new Error('APIエラー');
         const data = await response.json();
         setHorses(data);
+        
+        // 初期の掛金を0に設定
+        const initialBets: {[key: string]: number} = {};
+        data.forEach((horse: Horse) => {
+          initialBets[horse.horse_id] = 0;
+        });
+        setBetAmounts(initialBets);
       } catch (err) {
         setError('データ取得失敗');
       } finally {
@@ -25,6 +36,12 @@ export default function HorseTable() {
 
     fetchHorses();
   }, []);
+
+  useEffect(() => {
+    // 合計掛金を計算
+    const total = Object.values(betAmounts).reduce((sum, amount) => sum + amount, 0);
+    setTotalBet(total);
+  }, [betAmounts]);
 
   if (loading) return <div className="text-center p-4">読み込み中...</div>;
   if (error) return <div className="text-center p-4 text-red-500">{error}</div>;
@@ -44,87 +61,161 @@ export default function HorseTable() {
   
   // 次のレースへ
   const goToNextRace = () => {
-    if (currentRaceIndex < raceIds.length - 1) { // 最後のレースでない場合(currentRaceIndexは0から始まる)
-      setCurrentRaceIndex(currentRaceIndex + 1); // 次のレースへ
+    if (currentRaceIndex < raceIds.length - 1) {
+      setCurrentRaceIndex(currentRaceIndex + 1);
     }
   };
   
   // 前のレースへ
   const goToPreviousRace = () => {
-    if (currentRaceIndex > 0) { // 最初のレースでない場合
-      setCurrentRaceIndex(currentRaceIndex - 1); // 前のレースへ
+    if (currentRaceIndex > 0) {
+      setCurrentRaceIndex(currentRaceIndex - 1);
     }
   };
 
   // 現在のレースIDとそのレースの馬リスト
-  const currentRaceId = raceIds[currentRaceIndex]; // 現在のレースID
-  const currentRaceHorses = raceGroups[currentRaceId]; // 現在のレースの馬リスト
-  const raceInfo = currentRaceHorses[0]; // レース情報は各馬のデータに含まれている
+  const currentRaceId = raceIds[currentRaceIndex];
+  const currentRaceHorses = raceGroups[currentRaceId];
+  const raceInfo = currentRaceHorses[0];
+
+  // 掛金を変更する関数
+  const handleBetAmountChange = (e: React.ChangeEvent<HTMLInputElement>, horseId: string) => {
+    const amount = parseInt(e.target.value) || 0;
+    if (amount >= 0) {
+      setBetAmounts({
+        ...betAmounts,
+        [horseId]: amount
+      });
+    }
+  };
+
+  // 馬券を購入する関数
+  const placeBets = () => {
+    // 所持金のチェック
+    if (totalBet > userBalance) {
+      alert('所持金が足りません');
+      return;
+    }
+    
+    // 掛金が0の場合は購入しない
+    if (totalBet === 0) {
+      alert('掛金を入力してください');
+      return;
+    }
+
+    // 馬券購入の処理（実際はAPIリクエストなど）
+    const betsInfo = Object.entries(betAmounts)
+      .filter(([_, amount]) => amount > 0)
+      .map(([horseId, amount]) => {
+        const horse = horses.find(h => h.horse_id === horseId);
+        return `${horse?.馬名}: ${amount}円`;
+      })
+      .join('\n');
+
+    // 所持金の更新
+    setUserBalance(userBalance - totalBet);
+    
+    // 掛金をリセット
+    const resetBets: {[key: string]: number} = {};
+    Object.keys(betAmounts).forEach(key => {
+      resetBets[key] = 0;
+    });
+    setBetAmounts(resetBets);
+    
+    // 購入確認のアラート
+    alert(`馬券を購入しました！\n\n${betsInfo}\n\n合計: ${totalBet}円`);
+    
+    // アラートが閉じられた後に次のレースへ移動
+    // 最後のレースでなければ次のレースに移動
+    if (currentRaceIndex < raceIds.length - 1) {
+      // 直接ステートを更新（goToNextRaceを使わない）
+      setCurrentRaceIndex(currentRaceIndex + 1);
+    } else {
+      alert('最後のレースです。これ以上先に進めません。');
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center bg-gray-100 p-4 rounded">
-        <button 
-          onClick={goToPreviousRace} 
-          disabled={currentRaceIndex === 0} // 最初のレースの場合は無効
-          className={`px-4 py-2 rounded ${currentRaceIndex === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
-        >
-          前のレース
-        </button>
-        
-        <div className="text-center">
-          <span className="font-bold">レース {currentRaceIndex + 1} / {raceIds.length}</span>
+    <div className="max-w-4xl mx-auto p-4 bg-gray-100 rounded-md">
+      <div className="flex justify-between items-center mb-2 bg-gray-800 text-white p-3 rounded">
+        <div className="text-xl font-bold">
+          {raceInfo.R}R {raceInfo.レース名}
         </div>
-        
-        <button 
-          onClick={goToNextRace} 
-          disabled={currentRaceIndex === raceIds.length - 1}
-          className={`px-4 py-2 rounded ${currentRaceIndex === raceIds.length - 1 ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
-        >
-          次のレース
-        </button>
-      </div>
-      
-      <div className="bg-white rounded shadow overflow-hidden">
-        <div className="bg-blue-50 p-4 border-b">
-          <h2 className="text-xl font-bold">{raceInfo.レース名}</h2>
-          <div className="text-sm text-gray-600 mt-1">
-            {raceInfo.日付} {raceInfo.開催} {raceInfo.R}R {raceInfo.距離} {raceInfo.馬場}
+        <div className="text-right">
+          <div className="text-sm">
+            自分の所持金 <span className="text-lg font-bold">{userBalance.toLocaleString()}円</span>
+          </div>
+          <div className="text-sm">
+            AIの所持金 <span className="text-lg font-bold">{aiBalance.toLocaleString()}円</span>
           </div>
         </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-2 text-left">枠番</th>
-                <th className="px-4 py-2 text-left">馬番</th>
-                <th className="px-4 py-2 text-left">馬名</th>
-                <th className="px-4 py-2 text-left">騎手</th>
-                <th className="px-4 py-2 text-right">馬体重</th>
-                <th className="px-4 py-2 text-right">前走成績</th>
-                <th className="px-4 py-2 text-right">前々走成績</th>
-                <th className="px-4 py-2 text-right">オッズ</th>
-                <th className="px-4 py-2 text-right">人気</th>
+      </div>
+      
+      <div className="text-sm mb-4 px-2">
+        {raceInfo.距離} {raceInfo.天気}-{raceInfo.馬場}
+      </div>
+      
+      <table className="w-full mb-4 bg-white rounded-md overflow-hidden border border-gray-200">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="py-2 px-2 text-left">枠</th>
+            <th className="py-2 px-2 text-left">番</th>
+            <th className="py-2 px-2 text-left">馬名</th>
+            <th className="py-2 px-2 text-left">騎手</th>
+            <th className="py-2 px-2 text-center">斤量</th>
+            <th className="py-2 px-2 text-center">前走着順</th>
+            <th className="py-2 px-2 text-center">オッズ</th>
+            <th className="py-2 px-2 text-center">人気</th>
+            <th className="py-2 px-2 text-center">掛金</th>
+          </tr>
+        </thead>
+        <tbody>
+          {currentRaceHorses.map((horse) => {
+            return (
+              <tr key={horse.horse_id} className="border-b border-gray-100">
+                <td className="py-2 px-2">
+                    {horse.枠番}
+                </td>
+                <td className="py-2 px-2">{horse.馬番}</td>
+                <td className="py-2 px-2 font-bold">{horse.馬名}</td>
+                <td className="py-2 px-2">{horse.騎手}</td>
+                <td className="py-2 px-2 text-center">{horse.斤量}</td>
+                <td className="py-2 px-2 text-center">{horse.前走着順}</td>
+                <td className="py-2 px-2 text-center font-medium">{horse.オッズ}</td>
+                <td className="py-2 px-2 text-center">
+                  <span className="inline-block w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
+                    {horse.人気}
+                  </span>
+                </td>
+                <td className="py-2 px-2 text-right">
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={betAmounts[horse.horse_id] || 0}
+                    onChange={(e) => handleBetAmountChange(e, horse.horse_id)}
+                    className="w-16 px-1 py-1 border border-gray-300 text-right rounded"
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {currentRaceHorses.map((horse) => (
-                <tr key={horse.horse_id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-2">{horse.枠番}</td>
-                  <td className="px-4 py-2">{horse.馬番}</td>
-                  <td className="px-4 py-2 font-medium">{horse.馬名}</td>
-                  <td className="px-4 py-2">{horse.騎手}</td>
-                  <td className="px-4 py-2 text-right">{horse.馬体重}</td>
-                  <td className="px-4 py-2 text-right">{horse.前走着順}</td>
-                  <td className="px-4 py-2 text-right">{horse.前々走着順}</td>
-                  <td className="px-4 py-2 text-right">{horse.オッズ}</td>
-                  <td className="px-4 py-2 text-right">{horse.人気}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            );
+          })}
+        </tbody>
+      </table>
+      
+      <div className="flex justify-end mb-4 bg-gray-200 p-2 rounded">
+        <div className="text-lg">
+          合計掛金 <span className="font-bold">{totalBet.toLocaleString()}円</span>
         </div>
+      </div>
+      
+      <div className="flex justify-center mb-4">
+        <button 
+          onClick={placeBets}
+          className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-2 rounded"
+        >
+          賭ける
+        </button>
       </div>
     </div>
   );
