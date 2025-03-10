@@ -15,6 +15,8 @@ export default function HorseTable() {
   const [totalBet, setTotalBet] = useState(0);
   const [raceFinished, setRaceFinished] = useState(false);
   const [winner, setWinner] = useState<Horse | null>(null);
+  const [aiBets, setAiBets] = useState<{[key: string]: string}>({}); // AIが各レースでどの馬に賭けるか
+  const [aiResults, setAiResults] = useState<{[key: string]: number}>({}); // AIの各レースでの結果（払い戻し）
 
   // 馬データを取得
   useEffect(() => {
@@ -31,6 +33,34 @@ export default function HorseTable() {
           initialBets[horse.horse_id] = 0;
         });
         setBetAmounts(initialBets);
+        
+        // レースIDごとにデータをグループ化してAIの賭けを設定
+        const aiRaceBets: {[key: string]: string} = {};
+        const tempRaceGroups: { [key: string]: Horse[] } = {};
+        
+        data.forEach(horse => {
+          if (!tempRaceGroups[horse.race_id]) {
+            tempRaceGroups[horse.race_id] = [];
+          }
+          tempRaceGroups[horse.race_id].push(horse);
+        });
+        
+        // 各レースごとにAIが賭ける馬（predが最高の馬）を決定
+        Object.keys(tempRaceGroups).forEach(raceId => {
+          const raceHorses = tempRaceGroups[raceId];
+          // predが最も高い馬を見つける
+          let bestHorse = raceHorses[0];
+          raceHorses.forEach(horse => {
+            if (horse.pred > bestHorse.pred) {
+              bestHorse = horse;
+            }
+          });
+          // AIの賭け記録
+          aiRaceBets[raceId] = bestHorse.horse_id;
+        });
+        
+        // AIの賭けを設定
+        setAiBets(aiRaceBets);
       } catch (err) {
         setError('データ取得失敗');
       } finally {
@@ -109,12 +139,27 @@ export default function HorseTable() {
     const winningHorse = currentRaceHorses.find(horse => horse.着順 === 1) || currentRaceHorses[0];
     setWinner(winningHorse);
     
-    // 払い戻し計算
+    // プレイヤーの払い戻し計算
     const winningHorseId = winningHorse.horse_id;
     const betAmount = betAmounts[winningHorseId] || 0;
     const payout = betAmount * winningHorse.オッズ;
     
-    // 払い戻しがある場合は所持金に追加
+    // AIの払い戻し計算
+    const AI_BET_AMOUNT = 1000; // AIの賭け金額
+    const aiHorseId = aiBets[currentRaceId]; // AIが賭けた馬のID
+    const aiWin = aiHorseId === winningHorseId; // AIが勝ったかどうか
+    const aiPayout = aiWin ? AI_BET_AMOUNT * winningHorse.オッズ : 0; // AIの払い戻し
+    
+    // AIの結果を保存
+    setAiResults({
+      ...aiResults,
+      [currentRaceId]: aiPayout
+    });
+    
+    // AIの所持金更新
+    setAiBalance(prevBalance => prevBalance - AI_BET_AMOUNT + aiPayout);
+    
+    // プレイヤーの払い戻しがある場合は所持金に追加
     if (payout > 0) {
       setUserBalance(userBalance - totalBet + payout);
       setTimeout(() => {
@@ -149,7 +194,7 @@ export default function HorseTable() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 bg-gray-100 rounded-md">
+    <div className="max-w-6xl mx-auto p-4 bg-gray-100 rounded-md">
       {/* ヘッダー部分 */}
       <div className="flex justify-between items-center mb-2 bg-gray-800 text-white p-3 rounded">
         <div className="text-xl font-bold">
@@ -176,26 +221,44 @@ export default function HorseTable() {
           <h3 className="font-bold text-lg mb-2">レース結果</h3>
           <p>1着: <span className="font-bold">{winner.馬名}</span> (オッズ: {winner.オッズ})</p>
           
-          {/* 賭けた馬と払い戻し */}
-          {Object.entries(betAmounts).some(([_, amount]) => amount > 0) && (
-            <div className="mt-2">
+          <div className="flex mt-2">
+            {/* プレイヤーの賭けと払い戻し */}
+            <div className="w-1/2 pr-2">
               <p className="font-bold">あなたの馬券:</p>
-              <ul>
-                {Object.entries(betAmounts)
-                  .filter(([_, amount]) => amount > 0)
-                  .map(([horseId, amount]) => {
-                    const horse = horses.find(h => h.horse_id === horseId);
-                    const isWinner = winner.horse_id === horseId;
-                    return (
-                      <li key={horseId} className={isWinner ? "text-green-600 font-bold" : ""}>
-                        {horse?.馬名}: {amount.toLocaleString()}円
-                        {isWinner && ` → 払戻: ${(amount * (horse?.オッズ || 0)).toLocaleString()}円`}
-                      </li>
-                    );
-                  })}
-              </ul>
+              {Object.entries(betAmounts).some(([_, amount]) => amount > 0) ? (
+                <ul>
+                  {Object.entries(betAmounts)
+                    .filter(([_, amount]) => amount > 0)
+                    .map(([horseId, amount]) => {
+                      const horse = horses.find(h => h.horse_id === horseId);
+                      const isWinner = winner.horse_id === horseId;
+                      return (
+                        <li key={horseId} className={isWinner ? "text-green-600 font-bold" : ""}>
+                          {horse?.馬名}: {amount.toLocaleString()}円
+                          {isWinner && ` → 払戻: ${(amount * (horse?.オッズ || 0)).toLocaleString()}円`}
+                        </li>
+                      );
+                    })}
+                </ul>
+              ) : (
+                <p className="text-gray-500">賭けなし</p>
+              )}
             </div>
-          )}
+            
+            {/* AIの賭けと払い戻し */}
+            <div className="w-1/2 pl-2 border-l border-yellow-300">
+              <p className="font-bold">AIの馬券:</p>
+              {aiBets[currentRaceId] && (
+                <ul>
+                  <li className={winner.horse_id === aiBets[currentRaceId] ? "text-green-600 font-bold" : ""}>
+                    {horses.find(h => h.horse_id === aiBets[currentRaceId])?.馬名}: 1,000円
+                    {winner.horse_id === aiBets[currentRaceId] && 
+                      ` → 払戻: ${(1000 * winner.オッズ).toLocaleString()}円`}
+                  </li>
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       )}
       
@@ -209,51 +272,67 @@ export default function HorseTable() {
             <th className="py-2 px-2 text-left">騎手</th>
             <th className="py-2 px-2 text-center">斤量</th>
             <th className="py-2 px-2 text-center">前走着順</th>
+            <th className="py-2 px-2 text-center">前々走着順</th>
             <th className="py-2 px-2 text-center">オッズ</th>
             <th className="py-2 px-2 text-center">人気</th>
             <th className="py-2 px-2 text-center">掛金</th>
             <th className="py-2 px-2 text-center">AI予想</th>
+            <th className="py-2 px-2 text-center">AI賭け</th>
           </tr>
         </thead>
         <tbody>
-          {currentRaceHorses.map((horse) => (
-            <tr 
-              key={horse.horse_id} 
-              className={raceFinished && winner?.horse_id === horse.horse_id 
-                ? "border-b border-gray-100 bg-yellow-100" 
-                : "border-b border-gray-100"}
-            >
-              <td className="py-2 px-2">{horse.枠番}</td>
-              <td className="py-2 px-2">{horse.馬番}</td>
-              <td className="py-2 px-2 font-bold">{horse.馬名}</td>
-              <td className="py-2 px-2">{horse.騎手}</td>
-              <td className="py-2 px-2 text-center">{horse.斤量}</td>
-              <td className="py-2 px-2 text-center">{horse.前走着順}</td>
-              <td className="py-2 px-2 text-center font-medium">{horse.オッズ}</td>
-              <td className="py-2 px-2 text-center">
-                <span className="inline-block w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
-                  {horse.人気}
-                </span>
-              </td>
-              <td className="py-2 px-2 text-right">
-                {raceFinished ? (
-                  betAmounts[horse.horse_id] ? 
-                  betAmounts[horse.horse_id].toLocaleString() + '円' : 
-                  '0円'
-                ) : (
-                  <input
-                    type="number"
-                    min="0"
-                    step="100"
-                    value={betAmounts[horse.horse_id] || 0}
-                    onChange={(e) => handleBetAmountChange(e, horse.horse_id)}
-                    className="w-16 px-1 py-1 border border-gray-300 text-right rounded"
-                  />
-                )}
-              </td>
-              <td className="py-2 px-2 text-center">{horse.pred}</td>
-            </tr>
-          ))}
+          {currentRaceHorses.map((horse) => {
+            const isAiBet = aiBets[currentRaceId] === horse.horse_id;
+            
+            return (
+              <tr 
+                key={horse.horse_id} 
+                className={
+                  raceFinished && winner?.horse_id === horse.horse_id 
+                    ? "border-b border-gray-100 bg-yellow-100" 
+                    : "border-b border-gray-100"
+                }
+              >
+                <td className="py-2 px-2">{horse.枠番}</td>
+                <td className="py-2 px-2">{horse.馬番}</td>
+                <td className="py-2 px-2 font-bold">{horse.馬名}</td>
+                <td className="py-2 px-2">{horse.騎手}</td>
+                <td className="py-2 px-2 text-center">{horse.斤量}</td>
+                <td className="py-2 px-2 text-center">{horse.前走着順}</td>
+                <td className="py-2 px-2 text-center">{horse.前々走着順}</td>
+                <td className="py-2 px-2 text-center font-medium">{horse.オッズ}</td>
+                <td className="py-2 px-2 text-center">
+                  <span className="inline-block w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
+                    {horse.人気}
+                  </span>
+                </td>
+                <td className="py-2 px-2 text-right">
+                  {raceFinished ? (
+                    betAmounts[horse.horse_id] ? 
+                    betAmounts[horse.horse_id].toLocaleString() + '円' : 
+                    '0円'
+                  ) : (
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={betAmounts[horse.horse_id] || 0}
+                      onChange={(e) => handleBetAmountChange(e, horse.horse_id)}
+                      className="w-16 px-1 py-1 border border-gray-300 text-right rounded"
+                    />
+                  )}
+                </td>
+                <td className="py-2 px-2 text-center">{horse.pred}</td>
+                <td className="py-2 px-2 text-center">
+                  {isAiBet ? (
+                    <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                      1,000円
+                    </span>
+                  ) : null}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       
