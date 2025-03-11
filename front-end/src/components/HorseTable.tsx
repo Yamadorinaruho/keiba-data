@@ -38,7 +38,7 @@ export default function HorseTable() {
         const aiRaceBets: {[key: string]: string} = {};
         const tempRaceGroups: { [key: string]: Horse[] } = {};
         
-        data.forEach(horse => {
+        data.forEach((horse: Horse) => {
           if (!tempRaceGroups[horse.race_id]) {
             tempRaceGroups[horse.race_id] = [];
           }
