@@ -9,14 +9,19 @@ export default function HorseTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentRaceIndex, setCurrentRaceIndex] = useState(0);
-  const [betAmounts, setBetAmounts] = useState<{[key: string]: number}>({});
+  const [selectedHorse, setSelectedHorse] = useState<string | null>(null);
+  const [betAmount, setBetAmount] = useState<number>(0);
   const [userBalance, setUserBalance] = useState(20000);
   const [aiBalance, setAiBalance] = useState(18000);
-  const [totalBet, setTotalBet] = useState(0);
   const [raceFinished, setRaceFinished] = useState(false);
   const [winner, setWinner] = useState<Horse | null>(null);
-  const [aiBets, setAiBets] = useState<{[key: string]: string}>({}); // AIが各レースでどの馬に賭けるか
-  const [aiResults, setAiResults] = useState<{[key: string]: number}>({}); // AIの各レースでの結果（払い戻し）
+  
+  // タイマー関連
+  const [timeLeft, setTimeLeft] = useState<number>(30);
+  const [timerActive, setTimerActive] = useState<boolean>(true);
+  
+  // AIの賭け状態
+  const [aiSelectedHorse, setAiSelectedHorse] = useState<string | null>(null);
 
   // 馬データを取得
   useEffect(() => {
@@ -26,41 +31,6 @@ export default function HorseTable() {
         if (!response.ok) throw new Error('APIエラー');
         const data = await response.json();
         setHorses(data);
-        
-        // 初期の掛金を設定
-        const initialBets: {[key: string]: number} = {};
-        data.forEach((horse: Horse) => {
-          initialBets[horse.horse_id] = 0;
-        });
-        setBetAmounts(initialBets);
-        
-        // レースIDごとにデータをグループ化してAIの賭けを設定
-        const aiRaceBets: {[key: string]: string} = {};
-        const tempRaceGroups: { [key: string]: Horse[] } = {};
-        
-        data.forEach((horse: Horse) => {
-          if (!tempRaceGroups[horse.race_id]) {
-            tempRaceGroups[horse.race_id] = [];
-          }
-          tempRaceGroups[horse.race_id].push(horse);
-        });
-        
-        // 各レースごとにAIが賭ける馬（predが最高の馬）を決定
-        Object.keys(tempRaceGroups).forEach(raceId => {
-          const raceHorses = tempRaceGroups[raceId];
-          // predが最も高い馬を見つける
-          let bestHorse = raceHorses[0];
-          raceHorses.forEach(horse => {
-            if (horse.pred > bestHorse.pred) {
-              bestHorse = horse;
-            }
-          });
-          // AIの賭け記録
-          aiRaceBets[raceId] = bestHorse.horse_id;
-        });
-        
-        // AIの賭けを設定
-        setAiBets(aiRaceBets);
       } catch (err) {
         setError('データ取得失敗');
       } finally {
@@ -71,11 +41,35 @@ export default function HorseTable() {
     fetchHorses();
   }, []);
 
-  // 合計掛金を計算
+  // タイマー機能
   useEffect(() => {
-    const total = Object.values(betAmounts).reduce((sum, amount) => sum + amount, 0);
-    setTotalBet(total);
-  }, [betAmounts]);
+    if (loading || raceFinished || !timerActive) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        // AIが20秒経過時点で自動的に賭ける
+        if (prev === 10 && !aiSelectedHorse) {
+          handleAiBet();
+        }
+        
+        if (prev <= 1) {
+          clearInterval(timer);
+          
+          // 時間切れでレース開始
+          if (!raceFinished) {
+            if (!aiSelectedHorse) {
+              handleAiBet();
+            }
+            runRace();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [loading, raceFinished, timerActive, aiSelectedHorse]);
 
   // ローディング状態とエラー処理
   if (loading) return <div className="text-center p-4">読み込み中...</div>;
@@ -96,44 +90,81 @@ export default function HorseTable() {
   const currentRaceHorses = raceGroups[currentRaceId];
   const raceInfo = currentRaceHorses[0];
 
-  // 掛金を変更する関数
-  function handleBetAmountChange(e: React.ChangeEvent<HTMLInputElement>, horseId: string) {
-    const amount = parseInt(e.target.value) || 0;
-    if (amount >= 0) {
-      setBetAmounts({
-        ...betAmounts,
-        [horseId]: amount
-      });
+  // AIが賭ける処理
+  function handleAiBet() {
+    if (raceFinished || aiSelectedHorse) return;
+
+    // AIが賭ける馬を選ぶ（ユーザーが選んだ馬以外で予想値が最高の馬）
+    const availableHorses = currentRaceHorses.filter(horse => 
+      horse.horse_id !== selectedHorse
+    );
+    
+    // 予想値(pred)が最も高い馬を見つける
+    let bestHorse = availableHorses[0];
+    availableHorses.forEach(horse => {
+      if (horse.pred > bestHorse.pred) {
+        bestHorse = horse;
+      }
+    });
+    
+    setAiSelectedHorse(bestHorse.horse_id);
+  }
+
+  // 馬を選択する関数
+  function selectHorse(horseId: string) {
+    if (raceFinished || !timerActive) return;
+    
+    // 既に選択されている馬をクリックした場合は選択解除
+    if (selectedHorse === horseId) {
+      setSelectedHorse(null);
+      setBetAmount(0);
+    } else {
+      setSelectedHorse(horseId);
     }
   }
 
-  // 馬券を購入する関数
+  // 掛金を変更する関数
+  function handleBetAmountChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const amount = parseInt(e.target.value) || 0;
+    if (amount >= 0) {
+      setBetAmount(amount);
+    }
+  }
+
+  // ユーザーが馬券を購入する関数
   function placeBets() {
+    // 馬が選択されているか確認
+    if (!selectedHorse) {
+      alert('馬を選択してください');
+      return;
+    }
+    
     // 所持金チェック
-    if (totalBet > userBalance) {
+    if (betAmount > userBalance) {
       alert('所持金が足りません');
       return;
     }
     
     // 掛金チェック
-    if (totalBet === 0) {
+    if (betAmount === 0) {
       alert('掛金を入力してください');
       return;
     }
 
     // 所持金を減らす
-    setUserBalance(userBalance - totalBet);
+    setUserBalance(userBalance - betAmount);
     
-    // 購入確認アラート
-    const betsInfo = Object.entries(betAmounts)
-      .filter(([_, amount]) => amount > 0)
-      .map(([horseId, amount]) => {
-        const horse = horses.find(h => h.horse_id === horseId);
-        return `${horse?.馬名}: ${amount}円`;
-      })
-      .join('\n');
+    // AIが賭ける処理
+    handleAiBet();
     
-    alert(`馬券を購入しました！\n\n${betsInfo}\n\n合計: ${totalBet}円`);
+    // すぐにレース結果を表示
+    runRace();
+  }
+  
+  // レース実行処理
+  function runRace() {
+    // タイマーを停止
+    setTimerActive(false);
     
     // 勝ち馬を決定（着順=1の馬）
     const winningHorse = currentRaceHorses.find(horse => horse.着順 === 1) || currentRaceHorses[0];
@@ -141,34 +172,22 @@ export default function HorseTable() {
     
     // プレイヤーの払い戻し計算
     const winningHorseId = winningHorse.horse_id;
-    const betAmount = betAmounts[winningHorseId] || 0;
-    const payout = betAmount * winningHorse.オッズ;
+    const playerWin = selectedHorse === winningHorseId;
+    const payout = playerWin ? betAmount * winningHorse.オッズ : 0;
     
     // AIの払い戻し計算
     const AI_BET_AMOUNT = 1000; // AIの賭け金額
-    const aiHorseId = aiBets[currentRaceId]; // AIが賭けた馬のID
-    const aiWin = aiHorseId === winningHorseId; // AIが勝ったかどうか
+    const aiWin = aiSelectedHorse === winningHorseId; // AIが勝ったかどうか
     const aiPayout = aiWin ? AI_BET_AMOUNT * winningHorse.オッズ : 0; // AIの払い戻し
     
-    // AIの結果を保存
-    setAiResults({
-      ...aiResults,
-      [currentRaceId]: aiPayout
-    });
-    
     // AIの所持金更新
-    setAiBalance(prevBalance => prevBalance - AI_BET_AMOUNT + aiPayout);
+    if (aiSelectedHorse) {
+      setAiBalance(prevBalance => prevBalance - AI_BET_AMOUNT + aiPayout);
+    }
     
     // プレイヤーの払い戻しがある場合は所持金に追加
-    if (payout > 0) {
-      setUserBalance(userBalance - totalBet + payout);
-      setTimeout(() => {
-        alert(`おめでとうございます！\n\n1着: ${winningHorse.馬名}\n\n払い戻し: ${payout}円`);
-      }, 300);
-    } else {
-      setTimeout(() => {
-        alert(`残念！\n\n1着: ${winningHorse.馬名}\n\n的中なし`);
-      }, 300);
+    if (selectedHorse && payout > 0) {
+      setUserBalance(prevBalance => prevBalance + payout); // 掛金は既に引かれているので、払い戻しだけ追加
     }
     
     // レース終了状態にする
@@ -181,17 +200,18 @@ export default function HorseTable() {
       setCurrentRaceIndex(currentRaceIndex + 1);
       setRaceFinished(false);
       setWinner(null);
-      
-      // 掛金をリセット
-      const resetBets: {[key: string]: number} = {};
-      Object.keys(betAmounts).forEach(key => {
-        resetBets[key] = 0;
-      });
-      setBetAmounts(resetBets);
+      setSelectedHorse(null);
+      setBetAmount(0);
+      setTimeLeft(30);
+      setTimerActive(true);
+      setAiSelectedHorse(null);
     } else {
       alert('最後のレースです。これ以上先に進めません。');
     }
   }
+
+  // タイマーの表示形式を整える（プログレスバー風）
+  const timerPercentage = (timeLeft / 30) * 100;
 
   return (
     <div className="max-w-6xl mx-auto p-4 bg-gray-100 rounded-md">
@@ -210,6 +230,24 @@ export default function HorseTable() {
         </div>
       </div>
       
+      {/* タイマー表示（プログレスバー） */}
+      {!raceFinished && timerActive && (
+        <div className="mb-4 p-3 rounded bg-white border border-gray-300">
+          <div className="flex justify-between items-center mb-1">
+            <span className="font-bold">残り時間: {timeLeft}秒</span>
+            <span className={`font-bold ${aiSelectedHorse ? 'text-red-600' : 'text-gray-500'}`}>
+              AIの状態: {aiSelectedHorse ? `「${horses.find(h => h.horse_id === aiSelectedHorse)?.馬名}」に賭け済み` : 'まだ賭けていません'}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-4">
+            <div 
+              className={`h-4 rounded-full ${timeLeft <= 10 ? 'bg-red-500' : 'bg-blue-500'}`} 
+              style={{ width: `${timerPercentage}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
+      
       {/* レース情報 */}
       <div className="text-sm mb-4 px-2">
         {raceInfo.距離} {raceInfo.天気}-{raceInfo.馬場}
@@ -225,20 +263,13 @@ export default function HorseTable() {
             {/* プレイヤーの賭けと払い戻し */}
             <div className="w-1/2 pr-2">
               <p className="font-bold">あなたの馬券:</p>
-              {Object.entries(betAmounts).some(([_, amount]) => amount > 0) ? (
+              {selectedHorse ? (
                 <ul>
-                  {Object.entries(betAmounts)
-                    .filter(([_, amount]) => amount > 0)
-                    .map(([horseId, amount]) => {
-                      const horse = horses.find(h => h.horse_id === horseId);
-                      const isWinner = winner.horse_id === horseId;
-                      return (
-                        <li key={horseId} className={isWinner ? "text-green-600 font-bold" : ""}>
-                          {horse?.馬名}: {amount.toLocaleString()}円
-                          {isWinner && ` → 払戻: ${(amount * (horse?.オッズ || 0)).toLocaleString()}円`}
-                        </li>
-                      );
-                    })}
+                  <li className={winner.horse_id === selectedHorse ? "text-green-600 font-bold" : ""}>
+                    {horses.find(h => h.horse_id === selectedHorse)?.馬名}: {betAmount.toLocaleString()}円
+                    {winner.horse_id === selectedHorse && 
+                      ` → 払戻: ${(betAmount * winner.オッズ).toLocaleString()}円`}
+                  </li>
                 </ul>
               ) : (
                 <p className="text-gray-500">賭けなし</p>
@@ -248,14 +279,16 @@ export default function HorseTable() {
             {/* AIの賭けと払い戻し */}
             <div className="w-1/2 pl-2 border-l border-yellow-300">
               <p className="font-bold">AIの馬券:</p>
-              {aiBets[currentRaceId] && (
+              {aiSelectedHorse ? (
                 <ul>
-                  <li className={winner.horse_id === aiBets[currentRaceId] ? "text-green-600 font-bold" : ""}>
-                    {horses.find(h => h.horse_id === aiBets[currentRaceId])?.馬名}: 1,000円
-                    {winner.horse_id === aiBets[currentRaceId] && 
+                  <li className={winner.horse_id === aiSelectedHorse ? "text-green-600 font-bold" : ""}>
+                    {horses.find(h => h.horse_id === aiSelectedHorse)?.馬名}: 1,000円
+                    {winner.horse_id === aiSelectedHorse && 
                       ` → 払戻: ${(1000 * winner.オッズ).toLocaleString()}円`}
                   </li>
                 </ul>
+              ) : (
+                <p className="text-gray-500">賭けなし</p>
               )}
             </div>
           </div>
@@ -266,23 +299,18 @@ export default function HorseTable() {
       <table className="w-full mb-4 bg-white rounded-md overflow-hidden border border-gray-200">
         <thead>
           <tr className="bg-gray-200">
-            <th className="py-2 px-2 text-left">枠</th>
             <th className="py-2 px-2 text-left">番</th>
             <th className="py-2 px-2 text-left">馬名</th>
             <th className="py-2 px-2 text-left">騎手</th>
-            <th className="py-2 px-2 text-center">斤量</th>
-            <th className="py-2 px-2 text-center">前走着順</th>
-            <th className="py-2 px-2 text-center">前々走着順</th>
             <th className="py-2 px-2 text-center">オッズ</th>
             <th className="py-2 px-2 text-center">人気</th>
-            <th className="py-2 px-2 text-center">掛金</th>
-            <th className="py-2 px-2 text-center">AI予想</th>
-            <th className="py-2 px-2 text-center">AI賭け</th>
+            <th className="py-2 px-2 text-center">状態</th>
           </tr>
         </thead>
         <tbody>
           {currentRaceHorses.map((horse) => {
-            const isAiBet = aiBets[currentRaceId] === horse.horse_id;
+            const isAiBet = aiSelectedHorse === horse.horse_id;
+            const isSelected = selectedHorse === horse.horse_id;
             
             return (
               <tr 
@@ -290,45 +318,45 @@ export default function HorseTable() {
                 className={
                   raceFinished && winner?.horse_id === horse.horse_id 
                     ? "border-b border-gray-100 bg-yellow-100" 
+                    : isAiBet && !raceFinished
+                    ? "border-b border-gray-100 bg-red-50"
+                    : isSelected
+                    ? "border-b border-gray-100 bg-blue-50"
                     : "border-b border-gray-100"
                 }
+                onClick={() => !raceFinished && !isAiBet && selectHorse(horse.horse_id)}
+                style={{ cursor: (raceFinished || isAiBet) ? 'not-allowed' : 'pointer' }}
               >
-                <td className="py-2 px-2">{horse.枠番}</td>
                 <td className="py-2 px-2">{horse.馬番}</td>
                 <td className="py-2 px-2 font-bold">{horse.馬名}</td>
                 <td className="py-2 px-2">{horse.騎手}</td>
-                <td className="py-2 px-2 text-center">{horse.斤量}</td>
-                <td className="py-2 px-2 text-center">{horse.前走着順}</td>
-                <td className="py-2 px-2 text-center">{horse.前々走着順}</td>
                 <td className="py-2 px-2 text-center font-medium">{horse.オッズ}</td>
                 <td className="py-2 px-2 text-center">
                   <span className="inline-block w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
                     {horse.人気}
                   </span>
                 </td>
-                <td className="py-2 px-2 text-right">
-                  {raceFinished ? (
-                    betAmounts[horse.horse_id] ? 
-                    betAmounts[horse.horse_id].toLocaleString() + '円' : 
-                    '0円'
-                  ) : (
-                    <input
-                      type="number"
-                      min="0"
-                      step="100"
-                      value={betAmounts[horse.horse_id] || 0}
-                      onChange={(e) => handleBetAmountChange(e, horse.horse_id)}
-                      className="w-16 px-1 py-1 border border-gray-300 text-right rounded"
-                    />
-                  )}
-                </td>
-                <td className="py-2 px-2 text-center">{horse.pred}</td>
                 <td className="py-2 px-2 text-center">
-                  {isAiBet ? (
+                  {!raceFinished && isSelected && (
                     <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
-                      1,000円
+                      選択中
                     </span>
-                  ) : null}
+                  )}
+                  {!raceFinished && isAiBet && (
+                    <span className="inline-block px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">
+                      AI賭け済み
+                    </span>
+                  )}
+                  {raceFinished && isSelected && (
+                    <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                      ユーザー
+                    </span>
+                  )}
+                  {raceFinished && isAiBet && (
+                    <span className="inline-block px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">
+                      AI
+                    </span>
+                  )}
                 </td>
               </tr>
             );
@@ -336,20 +364,30 @@ export default function HorseTable() {
         </tbody>
       </table>
       
-      {/* 掛金合計と賭けるボタン / 次のレースボタン */}
+      {/* 掛金入力と賭けるボタン / 次のレースボタン */}
       {!raceFinished ? (
         <>
           <div className="flex justify-end mb-4 bg-gray-200 p-2 rounded">
-            <div className="text-lg">
-              合計掛金 <span className="font-bold">{totalBet.toLocaleString()}円</span>
+            <div className="flex items-center">
+              <span className="mr-2">掛金:</span>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                value={betAmount}
+                onChange={handleBetAmountChange}
+                disabled={!selectedHorse}
+                className="w-24 px-2 py-1 border border-gray-300 text-right rounded mr-2"
+              />
+              <span className="font-bold">円</span>
             </div>
           </div>
           
           <div className="flex justify-center mb-4">
             <button 
               onClick={placeBets}
-              disabled={totalBet === 0}
-              className={`px-8 py-2 rounded ${totalBet === 0 ? 'bg-gray-400' : 'bg-gray-800 hover:bg-gray-700 text-white'}`}
+              disabled={!selectedHorse || betAmount === 0}
+              className={`px-8 py-2 rounded ${!selectedHorse || betAmount === 0 ? 'bg-gray-400' : 'bg-gray-800 hover:bg-gray-700 text-white'}`}
             >
               賭ける
             </button>
