@@ -26,14 +26,14 @@ export default function Header_game() {
     }
 
     return (
-        <header>
+        <header className="fixed top-0 left-0 right-0 z-50"> 
             <nav className="flex justify-between items-center px-10 " style={{ backgroundColor: "#FFD700" }}>
                 <div className="flex items-center">
                         <Image src="/logo_horse.png" alt="logo" width={60} height={60} />
                         <div>競馬レース</div>
                 </div>
                 <div>
-                    <Button className="bg-orange-500 hover:bg-orange-700  h-8" onClick={handleGameIntterrupt} children="中断" />
+                    <Button className="bg-orange-700 hover:opacity-80 text-white  px-3 h-8 font-bold rounded-full shadow-lg" onClick={handleGameIntterrupt} children="中断" />
                 </div>
             </nav>
             
@@ -49,8 +49,8 @@ export default function Header_game() {
                         <h3>本当に中断しますか?</h3>
                         <p className='mb-4'>レースはリセットされ、ゲーム説明画面に戻ります</p>
                         <div className="flex justify-between mx-10">
-                            <Button className='bg-red-500 hover:bg-red-700 w-15 h-10 rounded-2xl cursor-pointer'children='はい' onClick={handleConfirm} />
-                            <Button className='bg-gray-300 hover:bg-gray-500 w-15 h-10 rounded-2xl cursor-pointer' children='いいえ' onClick={handleCancel} />
+                            <Button className='bg-red-500 hover:opacity-50 w-15 h-10 rounded-2xl cursor-pointer'children='はい' onClick={handleConfirm} />
+                            <Button className='bg-gray-300 hover:opacity-50 w-15 h-10 rounded-2xl cursor-pointer' children='いいえ' onClick={handleCancel} />
                         </div>
                     </div>
                 </div>

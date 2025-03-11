@@ -2,10 +2,30 @@
 'use client';
 import { useRouter } from "next/navigation";
 import Header_home from '@/components/layout/Header_home';
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
+import { Canvas } from "@react-three/fiber";
+import { useGLTF, useAnimations } from "@react-three/drei";
+import { Suspense } from "react";
 
+
+type PositionProps = {
+  x: number;
+  y: number;
+  z: number;
+}
+
+function HorseModel( { x, y, z } : PositionProps) {
+  const { scene, animations } = useGLTF("/the_horse.glb")
+  const { actions, names } = useAnimations(animations, scene);
+
+  useEffect(() => {
+    if (actions[names[0]]) {
+      actions[names[0]]?.play();
+    }
+  }, [actions, names]);
+  return <primitive object={scene} scale={1.5} position={[x, y, z]} rotation={[1, -1.5, 0.2]}/>;
+}
 
 export default function Home() {
 
@@ -29,17 +49,24 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-green-800">
+    <main className="min-h-screen bg-gradient-to-t from-green-900 to-green-400">
       <Header_home />
       <div className="fixed top-11 left-0 w-full h-full flex flex-col justify-center items-center bg-black/50 overflow-hidden">
         {/* 背景画像 (馬の疾走シルエット) */}
         <motion.div
           initial={{ x: "100%" }}
           animate={{ x: "-100%" }}
-          transition={{ repeat: Infinity, duration: 5, ease: "linear" }}
-          className="absolute w-full h-full opacity-30"
+          transition={{ repeat: Infinity, repeatDelay: 3, duration: 2.5, ease: "linear" }}
+          className="absolute w-full h-full opacity-70"
         >
-          <Image src="/logo_horse.png" alt="Racing Horses" layout="fill" objectFit="cover" color="red"/>
+          <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[5, 5, 5]} intensity={1} />
+            <Suspense fallback={null}>
+              <HorseModel x={0.5} y={0} z={-1} /> 
+            </Suspense>
+            {/* <OrbitControls /> */}
+          </Canvas>
         </motion.div>
         
         {/* タイトル */}
@@ -47,14 +74,23 @@ export default function Home() {
         
         {/* スタートボタン */}
         {!isStarting ? (
-          <motion.button
-            onClick={handleStart}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="mt-10 px-6 py-3 bg-gradient-to-r from-yellow-400 to-red-500 text-white text-2xl font-bold rounded-full shadow-lg"
-          >
-            レース開始！
-          </motion.button>
+          <>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="mt-10 px-9 py-3 z-10 bg-gray-600 text-white text-2xl font-bold rounded-full shadow-lg"
+            >
+              ゲーム説明
+            </motion.button>
+            <motion.button
+              onClick={handleStart}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="mt-10 px-6 py-3 z-10 bg-gradient-to-r from-yellow-400 to-red-500 text-white text-2xl font-bold rounded-full shadow-lg"
+            >
+              レース開始！
+            </motion.button>
+          </>
         ) : (
           <motion.div
             key={countdown}
@@ -62,7 +98,7 @@ export default function Home() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.5 }}
             transition={{ duration: 0.8 }}
-            className="text-white text-8xl font-bold mt-10"
+            className="text-white text-8xl font-bold mt-10 z-10"
           >
             {countdown > 0 ? countdown : "GO!"}
           </motion.div>
