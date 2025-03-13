@@ -1,0 +1,28 @@
+@keyframes neonPulse {
+  0%, 100% {
+    text-shadow: 
+      0 0 4px #00eaff, 
+      0 0 8px rgba(0, 234, 255, 0.9), 
+      0 0 16px rgba(0, 234, 255, 0.6);
+  }
+  50% {
+    text-shadow: 
+      0 0 6px #00eaff, 
+      0 0 12px rgba(0, 234, 255, 0.7), 
+      0 0 20px rgba(0, 234, 255, 0.4);
+  }
+}
+
+.neonEffect {
+  animation: neonPulse 1.8s infinite alternate;
+}
+
+.animateGlitch {
+  animation: glitch 1s  infinite linear alternate;
+}
+
+@keyframes glitch {
+  0% { transform: translate(3px, 0); opacity: 20; }
+  50% { transform: translate(-3px, 2px); opacity: 50; }
+  100% { transform: translate(0, 0); opacity: 0;}
+}

@@ -27,13 +27,13 @@ export default function Header_game() {
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50"> 
-            <nav className="flex justify-between items-center px-10 " style={{ backgroundColor: "#FFD700" }}>
+            <nav className="flex justify-between items-center px-10 bg-black/80 " >
                 <div className="flex items-center">
                         <Image src="/logo_horse.png" alt="logo" width={60} height={60} />
-                        <div>競馬レース</div>
+                        <div className='text-cyan-100'>LAST BET</div>
                 </div>
                 <div>
-                    <Button className="bg-orange-700 hover:opacity-80 text-white  px-3 h-8 font-bold rounded-full shadow-lg" onClick={handleGameIntterrupt} children="中断" />
+                    <Button className="bg-gradient-to-b bg-cyan-500 to-cyan-700 hover:opacity-80 text-white  px-3 h-8 font-bold rounded-full shadow-lg" onClick={handleGameIntterrupt} children="中断" />
                 </div>
             </nav>
             
