@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import styles from '../app/style/app.module.css'
 import Link from 'next/link'
+import { motion } from "framer-motion"
 
 type resultProps = {
     winner: string
 }
 
 const aiWinDialogues = [
+    " ", 
     "………終わったな",
     "やはり、貴様らの'運'とやらでは、私たちの計算には勝てなかったか",
     "この結果は必然だ \nお前たちは無力だった", 
@@ -18,6 +20,7 @@ const aiWinDialogues = [
 ]
 
 const humanWinDialogues = [
+    " ", 
     "………ありえない",
     "計算に誤りはなかったはず……\n '運'などという不確実な要素に……？",
     "こんな結末は……ありえない……!!",
@@ -25,45 +28,40 @@ const humanWinDialogues = [
     "貴様らの'運'が……………私たちを………",
 ]
 
+
+const speak = (text: string) => {
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(text.replace(/'|‘|’/g, ""));
+    utterance.lang = "ja-JP";
+    utterance.rate= 3;
+    utterance.pitch = 1.2;
+    utterance.volume = 1;
+    synth.speak(utterance);
+}
+
 export default function Result({ winner }: resultProps) {
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [text, setText] = useState("");
     const [typingIndex, setTypingIndex] = useState(0);
     const [isTyping, setIsTyping] = useState(true);
-    const [dialogLength, setDialogLength] = useState(0);
     const [isFadingOut, setIsFadingOut] = useState(false);
+    const [winnerDialogues, setWinnerDialogues] = useState<string[]>(winner === "AI" ? aiWinDialogues : humanWinDialogues);
 
     useEffect(() => {
-        if (winner === "AI") {
-            setDialogLength(aiWinDialogues.length);
-            if (typingIndex < aiWinDialogues[currentIndex].length) {
-                const timeout = setTimeout(() => {
-                    setText((prev) => prev + aiWinDialogues[currentIndex][typingIndex]);
-                    setTypingIndex(typingIndex + 1);
-                }, 50);
-                return () => clearTimeout(timeout);
-            } else {
-                setIsTyping(false);
-            }
-        } else if (winner === "human") {
-            setDialogLength(humanWinDialogues.length);
-            if (typingIndex < humanWinDialogues[currentIndex].length) {
-                const timeout = setTimeout(() => {
-                    setText((prev) => prev + humanWinDialogues[currentIndex][typingIndex]);
-                    setTypingIndex(typingIndex + 1);
-                }, 50);
-                return () => clearTimeout(timeout);
-            } else {
-                setIsTyping(false);
-            }
-        } else{
-            setText("引き分け")
+        if (typingIndex < winnerDialogues[currentIndex].length) {
+            const timeout = setTimeout(() => {
+                setText((prev) => prev + winnerDialogues[currentIndex][typingIndex]);
+                setTypingIndex(typingIndex + 1);
+            }, 50);
+            return () => clearTimeout(timeout);
+        } else {
+            setIsTyping(false);
         }
     }, [typingIndex]);
 
     const handleNext = () => {
-        if (currentIndex < aiWinDialogues.length - 1) {
+        if (currentIndex < winnerDialogues.length - 1) {
             setCurrentIndex((prev) => prev + 1);
             setText("");
             setTypingIndex(0);
@@ -74,17 +72,17 @@ export default function Result({ winner }: resultProps) {
     }
 
     const skipClick = () => {
-        if (winner === "AI") {
-            setCurrentIndex(aiWinDialogues.length - 1);
-        } else if (winner === "human") {
-            setCurrentIndex(humanWinDialogues.length - 1);
-        }
+        setCurrentIndex(winnerDialogues.length - 1);
         setIsTyping(false);
-        setText(winner === "AI" ? aiWinDialogues[aiWinDialogues.length - 1] : humanWinDialogues[humanWinDialogues.length - 1]);
+        setText(winnerDialogues[winnerDialogues.length - 1]);
     }
 
     useEffect(() => {
-        if (currentIndex === dialogLength - 1) {
+        speak(winnerDialogues[currentIndex]);
+    }, [currentIndex]);
+
+    useEffect(() => {
+        if (currentIndex === winnerDialogues.length - 1) {
             setTimeout(() => {
                 setIsFadingOut(true);
             }, 5000);
@@ -126,7 +124,7 @@ export default function Result({ winner }: resultProps) {
                                 </p>
                             </div>
                         </div>
-                        {currentIndex < dialogLength - 1 ? (
+                        {currentIndex < winnerDialogues.length - 1 ? (
                             <button 
                             onClick={handleNext}
                             disabled={isTyping} // タイピング中は押せない
@@ -139,10 +137,13 @@ export default function Result({ winner }: resultProps) {
                         ) : (
                             <></>
                         )}
-                        {currentIndex < dialogLength - 1 && (
+                        {currentIndex < winnerDialogues.length - 1 && (
                             <button
                             onClick={skipClick}
-                            className="bg-red-500 rounded-lg px-3 py-1 text-xl text-white ml-6 hover:bg-red-300 opacity-50 cursor-pointer"
+                            disabled={isTyping}
+                            className={`bg-red-500 rounded-lg px-3 py-1 text-xl text-white ml-6  opacity-50  ${
+                                isTyping ? "cursor-not-allowed" : "hover:bg-red-300 hover:cursor-pointer"
+                            }`}
                             >
                             スキップ
                             </button>
@@ -153,21 +154,31 @@ export default function Result({ winner }: resultProps) {
                 <>
                     {/* フェードアウト */}
                     { winner === "AI" ? (
-                        <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/50">
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 1 }}
+                          className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/50"
+                        >
                             <div className="text-red-800 text-4xl font-bold">YOU LOSE</div>
                             <div className="text-red-900 text-lg font-bold mt-4">AIの勝利</div>
                             <Link href="/" className="mt-4 hover:underline text-white">
                                 ホームに戻る
                             </Link>
-                        </div>
+                        </motion.div>
                     ) : (
-                        <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/50">
+                        <motion.div
+                         initial={{ opacity: 0 }}
+                         animate={{ opacity: 1 }}
+                         transition={{ duration: 1 }}
+                         className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black/50"
+                        >
                             <div className="text-white text-4xl font-bold">HUMAN WIN</div>
                             <div className="text-white text-lg font-bold mt-4">人間の勝利</div>
                             <Link href="/" className="mt-4 hover:underline text-white">
                                 ホームに戻る
                             </Link>
-                        </div>
+                        </motion.div>
                     )}
                 </>
             )}
