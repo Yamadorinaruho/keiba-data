@@ -92,8 +92,8 @@ export default function Result({ winner }: resultProps) {
     return (
         <div>
             {!isFadingOut ? (
-                <div className="relative w-full min-h-screen flex flex-col items-center justify-center">
-                    <div className="relative w-[80vw] max-w-sm md:max-w-md lg:max-w-lg h-[50vh] md:h-[60vh] max-h-[300px] bg-black/50 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/50">
+                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                    <div className="absolute top-3  w-[80vw] max-w-[800px] h-[60vh] max-h-[600px] bg-black/50 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/50">
                         <div
                             className="absolute w-full h-full bg-center bg-cover opacity-60 mix-blend-screen"
                             style={{
@@ -111,7 +111,7 @@ export default function Result({ winner }: resultProps) {
                         }}
                         ></div>
                     </div>
-                    <div className="mt-6 w-[90vw] max-w-sm md:max-w-md lg:max-w-lg text-center">
+                    <div className="absolute top-150 w-[80vw] max-w-[600px] text-center">
                         <div className="relative bg-gray-900 text-white font-mono py-9 mb-9 border border-green-500 rounded-lg opacity-90">
                             <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.2) 50%,rgba(0,0,0,0) 50%)] bg-[size:100%_6px]  pointer-events-none">
                                 <p className="text-base md:text-lg leading-loose">

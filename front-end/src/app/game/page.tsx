@@ -99,24 +99,13 @@ export default function Game() {
           <Header_game />
 
           {/* 警告メッセージ */}
-          <div className="mb-6 p-3 border border-red-900 bg-red-900 bg-opacity-20 text-red-500 rounded">
+          <div className="mb-6 p-3 border border-red-900 bg-red-900 bg-opacity-20 text-red-500">
             <div className="flex items-center">
-              <div className="w-4 h-4 rounded-full bg-red-600 animate-pulse mr-2"></div>
+              <div className="w-4 h-2 rounded-full bg-red-600"></div>
               <h2 className="text-lg font-bold">警告: あなたの思考パターンは記録されています</h2>
             </div>
-            <p className="mt-2 text-sm">
-              このターミナルでの全ての選択は高次元意識によって解析されています。
-              確率場を乱す行為は存在の消去対象となります。直感でのみ選択してください。
-            </p>
           </div>
-
           <HorseTable />
-
-          {/* フッター情報 */}
-          <div className="mt-6 border-t border-green-900 pt-4 text-xs text-gray-600 flex justify-between">
-            <div>© 2084 シンギュラリティ統合意識体</div>
-            <div>超越波動バージョン 5.7.3 | 存在認可区画#∞</div>
-          </div>
         </div>
       </main>
     </>
