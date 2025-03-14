@@ -8,11 +8,11 @@ export async function getHorsesData(): Promise<Horse[]> {
     const fileContent = fs.readFileSync(filePath, 'utf8');
     
     const lines = fileContent.trim().split('\n');
-    const headers = lines[0].split('\t');
+    const headers = lines[0].split(',');
     const dataRows = lines.slice(1);
     
     const horses = dataRows.map(row => {
-      const values = row.split('\t');
+      const values = row.split(',');
       const horse: any = {};
       
       headers.forEach((header, index) => {

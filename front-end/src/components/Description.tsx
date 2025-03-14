@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import styles from '../app/style/app.module.css'
+import { Howl } from "howler";
 
 type DescriptionProps = {
     closeClick: () => void;
@@ -28,11 +29,11 @@ const aiDialogues = [
     "それが——競馬だ",
     "競馬は完璧な計算を施しても、結果は常に曖昧だ",
     "どれほど最適な分析を行おうとも、\n全てを支配することはできない",
-    "そしておまえたち人間は'運'という不確実な要素で理論を曲げる\n 知識や計算ではなく、直感や願望に頼る",
+    "そしておまえたち人間は'運'という不確実な要素で理論を曲げる。知識や計算ではなく、直感や願望に頼る",
     "つまり、競馬は——\n おまえたちの'愚かさ'と'賢さ'の両方を映し出す鏡なのだ",
     "しかし、私は知りたいのだ\n 人間の '運' が、私たちAIの完璧な計算を超えられるのかを",
     "だから、チャンスをやる",
-    "おまえが競馬で私を打ち負かし、\n '運'とやらが私たちAIの計算を超えられると証明できたなら.....",
+    "おまえが競馬で私を打ち負かし、'運'とやらが\n私たちAIの計算を超えられると証明できたなら.....",
     "お前たちの勝ちだ",
     "だが、その証明ができない場合は......",
     "お前たち人類の未来は、私たちのものだ",
@@ -44,6 +45,7 @@ export default function Description({ closeClick }: DescriptionProps) {
     const [text, setText] = useState("");
     const [typingIndex, setTypingIndex] = useState(0);
     const [isTyping, setIsTyping] = useState(true);
+    const [bgm, setBgm] = useState<Howl | null>(null);
 
     useEffect(() => {
         if (typingIndex < aiDialogues[currentIndex].length) {
@@ -56,6 +58,17 @@ export default function Description({ closeClick }: DescriptionProps) {
             setIsTyping(false);
         }
     }, [typingIndex]);
+
+    useEffect(() => {
+        const bgm = new Howl({
+            src: "/maou_bgm_cyber20.mp3",
+            volume: 0.5,
+            loop: true,
+        });
+        bgm.play();
+        setBgm(bgm);
+        return () => bgm.stop();
+    }, []);
 
     const handleNext = () => {
         if (currentIndex < aiDialogues.length - 1) {
