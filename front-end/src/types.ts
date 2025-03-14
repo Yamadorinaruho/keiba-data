@@ -20,4 +20,8 @@ export interface Horse {
   前々走着順: number;
   pred: number;
   馬名: string;
+  SF馬名: string;
+  SF騎手: string;
+  SFレース名: string;
+
 }
