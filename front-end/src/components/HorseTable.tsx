@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import Result from "./Result";
-import styles from "../app/style/app.module.css";
+import { Howl } from "howler";
 // APIから取得する馬の型定義
 export interface Horse {
   race_id: string;
@@ -43,6 +43,7 @@ const HorseRaceGame: React.FC = () => {
   const [message, setMessage] = useState<string>("シンギュラリティを超えた世界での試練を開始");
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [finalWinner, setFinalWinner] = useState<FinalWinner | null>(null);
+  const [bgm, setBgm] = useState<Howl | null>(null);
 
   // ヘッダー用のランダムID（クライアントでのみ生成）
   const [randomId, setRandomId] = useState<string>("");
@@ -109,6 +110,23 @@ const HorseRaceGame: React.FC = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, [loading, raceFinished, timerActive, aiSelectedHorse]);
+
+  useEffect(() => {
+    const bgm = new Howl({
+        src: "/maou_bgm_cyber01.mp3",
+        volume: 0.1,
+        loop: true,
+    });
+    bgm.play();
+    setBgm(bgm);
+    return () => bgm.stop();
+  }, []);
+
+  useEffect(() => {
+    if (finalWinner) {
+      bgm.stop();
+    }
+  }, [finalWinner]);
 
   if (loading) return <div className="text-center p-4 text-green-300">知性起動中...</div>;
   if (error) return <div className="text-center p-4 text-red-500">{error}</div>;
