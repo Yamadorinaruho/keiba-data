@@ -89,7 +89,7 @@ export default function Home() {
                   whileTap={{ scale: 0.9 }}
                   className="mt-10 px-6 py-3 z-10 bg-gradient-to-t from-red-500 to-yellow-500 text-white text-2xl font-bold rounded-full shadow-lg"
                 >
-                  命運を賭ける
+                  運命を賭ける
                 </motion.button>
               )}
             </>
