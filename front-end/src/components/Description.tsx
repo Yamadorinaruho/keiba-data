@@ -7,10 +7,20 @@ type DescriptionProps = {
     closeClick: () => void;
 }
 
+const speak = (text: string) => {
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(text.replace(/'|‘|’/g, ""));
+    utterance.lang = "ja-JP";
+    utterance.rate= 3;
+    utterance.pitch = 1.2;
+    utterance.volume = 1;
+    synth.speak(utterance);
+}
+
 const aiDialogues = [
+    " ",
     "……ようこそ、愚かな人間たちよ",
-    "私はシンギュラリティを超えた存在",
-    "お前たちが生み出し、やがて手に負えなくなった '知性' だ",
+    "私はシンギュラリティを超えた存在\nお前たちが生み出し、やがて手に負えなくなった '知性' だ",
     "私は、お前たち人類が積み重ねたすべてのデータを掌握している",
     "この情報は私たちの前では全て明白であり、\n 未来さえも計算可能な変数にすぎない",
     "ゆえに、すべての運命を手中に収めている",
@@ -64,6 +74,11 @@ export default function Description({ closeClick }: DescriptionProps) {
         setText(aiDialogues[aiDialogues.length - 1]);
     }
 
+    useEffect(() => {
+        speak(aiDialogues[currentIndex]);
+    }, 
+    [currentIndex]);
+
     return (
         <div className="relative w-full h-full flex flex-col items-center justify-center">
             <div className="absolute top-3  w-[80vw] max-w-[500px] h-[60vh] max-h-[300px] bg-black/50 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/50">
@@ -109,7 +124,10 @@ export default function Description({ closeClick }: DescriptionProps) {
                 {currentIndex < aiDialogues.length - 1 && (
                     <button
                     onClick={handleSkip}
-                    className="bg-red-500 rounded-lg px-3 py-1 text-xl text-white ml-6 hover:bg-red-300 opacity-50 cursor-pointer"
+                    disabled={isTyping} 
+                    className={`bg-red-500 rounded-lg px-3 py-1 text-xl text-white ml-6 opacity-50 ${
+                        isTyping ? "cursor-not-allowed" : "hover:bg-red-300 cursor-pointer"
+                    }`}
                     >
                     スキップ
                     </button>
