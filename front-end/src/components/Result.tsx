@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react"
 import styles from '../app/style/app.module.css'
 import Link from 'next/link'
 import { motion } from "framer-motion"
+import { Howl } from "howler"
 
 type resultProps = {
     winner: string
@@ -47,6 +48,7 @@ export default function Result({ winner }: resultProps) {
     const [isTyping, setIsTyping] = useState(true);
     const [isFadingOut, setIsFadingOut] = useState(false);
     const [winnerDialogues, setWinnerDialogues] = useState<string[]>(winner === "AI" ? aiWinDialogues : humanWinDialogues);
+    const [bgm, setBgm] = useState<Howl | null>(null);
 
     useEffect(() => {
         if (typingIndex < winnerDialogues[currentIndex].length) {
@@ -59,6 +61,18 @@ export default function Result({ winner }: resultProps) {
             setIsTyping(false);
         }
     }, [typingIndex]);
+
+    useEffect(() => {
+        const src = winner === "AI" ? "/analyzing_bgm.wav" : "/maou_14_shining_star.mp3";
+        const bgm = new Howl({
+            src: src,
+            volume: 0.5,
+            loop: true,
+        });
+        bgm.play();
+        setBgm(bgm);
+        return () => bgm.stop();
+    }, []);
 
     const handleNext = () => {
         if (currentIndex < winnerDialogues.length - 1) {
