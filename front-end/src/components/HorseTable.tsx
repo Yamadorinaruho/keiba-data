@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import Result from "./Result";
-import styles from "../app/style/app.module.css";
+import { Howl } from "howler";
 // APIから取得する馬の型定義
 export interface Horse {
   race_id: string;
@@ -43,6 +43,7 @@ const HorseRaceGame: React.FC = () => {
   const [message, setMessage] = useState<string>("シンギュラリティを超えた世界での試練を開始");
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [finalWinner, setFinalWinner] = useState<FinalWinner | null>(null);
+  const [bgm, setBgm] = useState<Howl | null>(null);
 
   // ヘッダー用のランダムID（クライアントでのみ生成）
   const [randomId, setRandomId] = useState<string>("");
@@ -110,7 +111,24 @@ const HorseRaceGame: React.FC = () => {
     return () => clearInterval(timer);
   }, [loading, raceFinished, timerActive, aiSelectedHorse]);
 
-  if (loading) return <div className="text-center p-4 text-green-300">量子知性起動中...</div>;
+  useEffect(() => {
+    const bgm = new Howl({
+        src: "/maou_bgm_cyber01.mp3",
+        volume: 0.1,
+        loop: true,
+    });
+    bgm.play();
+    setBgm(bgm);
+    return () => bgm.stop();
+  }, []);
+
+  useEffect(() => {
+    if (finalWinner) {
+      bgm.stop();
+    }
+  }, [finalWinner]);
+
+  if (loading) return <div className="text-center p-4 text-green-300">知性起動中...</div>;
   if (error) return <div className="text-center p-4 text-red-500">{error}</div>;
   if (horses.length === 0) return <div className="text-center p-4 text-red-500">存在データ消失：虚無へ</div>;
 
@@ -367,8 +385,8 @@ const HorseRaceGame: React.FC = () => {
         {!raceFinished && timerActive && (
           <div className="p-2 border-y border-green-700 my-2">
             <div className="flex justify-between mb-1">
-              <span>量子崩壊まで: {timeLeft}秒</span>
-              <span>{aiSelectedHorse ? "AI演算完了" : "AI量子演算中..."}</span>
+              <span>タイムリミット: {timeLeft}秒</span>
+              <span>{aiSelectedHorse ? "AI演算完了" : "AI演算中..."}</span>
             </div>
             <div className="w-full bg-green-900 h-2 rounded">
               <div
@@ -411,7 +429,7 @@ const HorseRaceGame: React.FC = () => {
                     {horses.find(h => h.horse_id === selectedHorse)?.SF馬名}:{" "}
                     {betAmount.toLocaleString()}¥
                     {winner.horse_id === selectedHorse &&
-                      ` → 獲得された未来: ${(betAmount * (parseFloat(winner.オッズ))).toLocaleString()}¥`}
+                      ` → 払戻額: ${(betAmount * (parseFloat(winner.オッズ))).toLocaleString()}¥`}
                   </div>
                 ) : (
                   <p className="text-green-700">運命放棄</p>
@@ -432,7 +450,7 @@ const HorseRaceGame: React.FC = () => {
                     {horses.find(h => h.horse_id === aiSelectedHorse)?.SF馬名}:{" "}
                     {AI_BET_AMOUNT.toLocaleString()}¥
                     {winner.horse_id === aiSelectedHorse &&
-                      ` → 計算された利益: ${(
+                      ` → 払戻額: ${(
                         AI_BET_AMOUNT *
                         (parseFloat(winner.オッズ) )
                       ).toLocaleString()}¥`}
