@@ -58,6 +58,12 @@ export default function Description({ closeClick }: DescriptionProps) {
         }
     };
 
+    const handleSkip = () => {
+        setCurrentIndex(aiDialogues.length - 1);
+        setIsTyping(false);
+        setText(aiDialogues[aiDialogues.length - 1]);
+    }
+
     return (
         <div className="relative w-full h-full flex flex-col items-center justify-center">
             <div className="absolute top-3  w-[80vw] max-w-[500px] h-[60vh] max-h-[300px] bg-black/50 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/50">
@@ -95,11 +101,19 @@ export default function Description({ closeClick }: DescriptionProps) {
                 onClick={handleNext}
                 disabled={isTyping} // タイピング中は押せない
                 className={`bg-cyan-500 rounded-lg px-3 py-1 text-xl text-white ${
-                    isTyping ? "opacity-50 cursor-not-allowed" : "opacity-100"
+                    isTyping ? "opacity-50 cursor-not-allowed" : "opacity-100 hover:saturate-200 cursor-pointer"
                 }`}
                 >
                     {currentIndex < aiDialogues.length - 1 ? "次へ" : "閉じる"}
                 </button>
+                {currentIndex < aiDialogues.length - 1 && (
+                    <button
+                    onClick={handleSkip}
+                    className="bg-red-500 rounded-lg px-3 py-1 text-xl text-white ml-6 hover:bg-red-300 opacity-50 cursor-pointer"
+                    >
+                    スキップ
+                    </button>
+                )}
             </div>
         </div>
     )
