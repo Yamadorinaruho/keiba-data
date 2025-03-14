@@ -10,7 +10,7 @@ type DescriptionProps = {
 
 const speak = (text: string) => {
     const synth = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(text.replace(/'|‘|’/g, ""));
+    const utterance = new SpeechSynthesisUtterance(text.replace(/'|'|'/g, ""));
     utterance.lang = "ja-JP";
     utterance.rate= 3;
     utterance.pitch = 1.2;
@@ -57,12 +57,12 @@ export default function Description({ closeClick }: DescriptionProps) {
         } else {
             setIsTyping(false);
         }
-    }, [typingIndex]);
+    }, [typingIndex, currentIndex]);
 
     useEffect(() => {
         const bgm = new Howl({
             src: "/maou_bgm_cyber20.mp3",
-            volume: 0.5,
+            volume: 0.1,
             loop: true,
         });
         bgm.play();
@@ -93,58 +93,84 @@ export default function Description({ closeClick }: DescriptionProps) {
     [currentIndex]);
 
     return (
-        <div className="relative w-full h-full flex flex-col items-center justify-center">
-            <div className="absolute top-3  w-[80vw] max-w-[800px] h-[60vh] max-h-[600px] bg-black/50 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/50">
+        <div className="relative w-full h-full flex flex-col items-center justify-center bg-black/40">
+            {/* 背景コンテナ - 改良したサイズと位置 */}
+            <div className="absolute top-8 w-[90vw] max-w-[900px] h-[68vh] max-h-[680px] bg-black/60 rounded-lg overflow-hidden shadow-xl shadow-cyan-600/50 border border-cyan-700/40">
+                {/* AI背景画像 - より鮮明に */}
                 <div
-                    className="absolute w-full h-full bg-center bg-cover opacity-60 mix-blend-screen"
+                    className="absolute w-full h-full bg-center bg-cover opacity-70 mix-blend-screen"
                     style={{
                         backgroundImage: "url('/creepyAI.webp')",
-                        filter: "brightness(1.2) contrast(1.1)",
+                        filter: "brightness(1.3) contrast(1.2) saturate(1.1)",
                     }}
                 ></div>
-                {/* スキャンラインエフェクト */}
-                {/* <div className={`absolute w-full h-full opacity-30 pointer-events-none bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.2)_50%)] bg-[size:100%_4px] ${styles.animateGlitch}`}></div> */}
-                {/* グリッチエフェクト */}
+                
+                {/* スキャンラインエフェクト - よりはっきりと */}
+                <div className={`absolute w-full h-full opacity-50 pointer-events-none bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[size:100%_4px] ${styles.animateGlitch}`}></div>
+                
+                {/* グリッチエフェクト - 適度な強さに */}
                 <div
-                className={`absolute w-full h-full bg-center bg-cover opacity-60 blur-sm mix-blend-overlay ${styles.animateGlitch}`}
-                style={{
-                    backgroundImage: "url('creepyAI.webp')",
-                }}
+                    className={`absolute w-full h-full bg-center bg-cover opacity-60 blur-sm mix-blend-overlay ${styles.animateGlitch}`}
+                    style={{
+                        backgroundImage: "url('creepyAI.webp')",
+                    }}
                 ></div>
+                
+                {/* サイバーパンク風の光の効果 */}
+                <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/10 via-transparent to-purple-500/10 opacity-60"></div>
+                
+                {/* 角にサイバーパンク風の装飾を追加 */}
+                <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-cyan-400/80 rounded-tl-lg"></div>
+                <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-cyan-400/80 rounded-tr-lg"></div>
+                <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-cyan-400/80 rounded-bl-lg"></div>
+                <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-cyan-400/80 rounded-br-lg"></div>
             </div>
-            <div className="absolute top-150 w-[80vw] max-w-[600px] text-center">
-                <div className="bg-gray-900 text-white font-mono py-10 mb-9 border border-green-500 rounded-lg opacity-90">
-                    <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.2) 50%,rgba(0,0,0,0) 50%)] bg-[size:100%_6px]  pointer-events-none">
-                        <p className="text-lg leading-loose">
-                        {text.split("\n").map((line, index) => (
-                            <span key={index}>
-                            {line}
-                            <br />
-                            </span>
-                        ))}
+            
+            {/* テキスト表示部分 - 位置を下に移動して顔と重ならないように・高さを固定 */}
+            <div className="absolute bottom-24 w-[80vw] max-w-[750px] text-center z-10">
+                {/* テキストボックス - 高さを固定 */}
+                <div className="bg-gray-900/85 text-white font-mono py-6 px-6 mb-4 border-l-2 border-r-2 border-t border-b-2 border-green-500/70 rounded-lg shadow-lg shadow-green-500/30 h-[150px] flex items-center justify-center">
+                    {/* スキャンライン効果 */}
+                    <div className="relative h-full w-full">
+                        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.1)_50%,rgba(0,0,0,0)_50%)] bg-[size:100%_6px] pointer-events-none"></div>
+                        {/* テキスト - サイバーパンク風のシャドウ効果 */}
+                        <p className="text-xl leading-loose relative">
+                            {text.split("\n").map((line, index) => (
+                                <span key={index} className="text-shadow-cyan relative z-10">
+                                    {line}
+                                    <br />
+                                </span>
+                            ))}
+                            {/* タイピング中のカーソル効果 */}
+                            {isTyping && <span className="inline-block w-3 h-6 bg-green-500 ml-1 animate-pulse"></span>}
                         </p>
                     </div>
                 </div>
-                <button 
-                onClick={handleNext}
-                disabled={isTyping} // タイピング中は押せない
-                className={`bg-cyan-500 rounded-lg px-3 py-1 text-xl text-white ${
-                    isTyping ? "opacity-50 cursor-not-allowed" : "opacity-100 hover:saturate-200 cursor-pointer"
-                }`}
-                >
-                    {currentIndex < aiDialogues.length - 1 ? "次へ" : "閉じる"}
-                </button>
-                {currentIndex < aiDialogues.length - 1 && (
-                    <button
-                    onClick={handleSkip}
-                    disabled={isTyping} 
-                    className={`bg-red-500 rounded-lg px-3 py-1 text-xl text-white ml-6 opacity-50 ${
-                        isTyping ? "cursor-not-allowed" : "hover:bg-red-300 cursor-pointer"
-                    }`}
+                
+                {/* ボタン - サイバーパンク風にデザイン改良 */}
+                <div className="flex justify-center space-x-6">
+                    <button 
+                        onClick={handleNext}
+                        disabled={isTyping}
+                        className={`bg-cyan-600 rounded-md px-6 py-2 text-xl text-white border border-cyan-400/50 shadow-md shadow-cyan-500/30 transition-all ${
+                            isTyping ? "opacity-50 cursor-not-allowed" : "opacity-100 hover:bg-cyan-500 hover:shadow-lg hover:shadow-cyan-400/50 cursor-pointer"
+                        }`}
                     >
-                    スキップ
+                        {currentIndex < aiDialogues.length - 1 ? "次へ" : "閉じる"}
                     </button>
-                )}
+                    
+                    {currentIndex < aiDialogues.length - 1 && (
+                        <button
+                            onClick={handleSkip}
+                            disabled={isTyping} 
+                            className={`bg-red-600 rounded-md px-6 py-2 text-xl text-white border border-red-400/50 shadow-md shadow-red-500/30 transition-all ${
+                                isTyping ? "opacity-50 cursor-not-allowed" : "opacity-100 hover:bg-red-500 hover:shadow-lg hover:shadow-red-400/50 cursor-pointer"
+                            }`}
+                        >
+                            スキップ
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     )
