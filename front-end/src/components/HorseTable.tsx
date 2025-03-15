@@ -169,7 +169,7 @@ const HorseRaceGame: React.FC = () => {
     setAiSelectedHorse(chosenAiHorse);
     const chosenHorseObj = currentRaceHorses.find(horse => horse.horse_id === chosenAiHorse);
     if (chosenHorseObj) {
-      setMessage(prev => prev + ` / AI: 「${chosenHorseObj.SF馬名}」が最適解と演算完了`);
+      setMessage(prev => prev + ` / AI: 「${chosenHorseObj.馬名}」が最適解と演算完了`);
     }
   }
 
@@ -184,7 +184,7 @@ const HorseRaceGame: React.FC = () => {
       setSelectedHorse(horseId);
       const horse = horses.find(h => h.horse_id === horseId);
       if (horse) {
-        setMessage(`あなたは「${horse.SF馬名}」に運命を託す：計算を超えた直感`);
+        setMessage(`あなたは「${horse.馬名}」に運命を託す：計算を超えた直感`);
       }
     }
   }
@@ -226,7 +226,7 @@ const HorseRaceGame: React.FC = () => {
       setAiSelectedHorse(manualAiHorse);
       const chosenHorseObj = currentRaceHorses.find(horse => horse.horse_id === manualAiHorse);
       if (chosenHorseObj) {
-        setMessage(prev => prev + ` / AI: 「${chosenHorseObj.SF馬名}」が最適解と演算完了`);
+        setMessage(prev => prev + ` / AI: 「${chosenHorseObj.馬名}」が最適解と演算完了`);
       }
     }
     // 少し待ってからレース実行
@@ -411,7 +411,7 @@ const HorseRaceGame: React.FC = () => {
           <div className="p-3 border border-green-700 mx-2 mb-2 bg-gray-900 rounded">
             <h3 className="font-bold text-lg mb-2 pb-1 border-b border-green-700">結果</h3>
             <p>
-              1着: <span className="font-bold text-yellow-500">{winner.SF馬名}</span> (オッズ:{" "}
+              1着: <span className="font-bold text-yellow-500">{winner.馬名}</span> (オッズ:{" "}
               {winner.オッズ})
             </p>
             <div className="flex mt-2">
@@ -426,7 +426,7 @@ const HorseRaceGame: React.FC = () => {
                         : "text-green-700"
                     }
                   >
-                    {horses.find(h => h.horse_id === selectedHorse)?.SF馬名}:{" "}
+                    {horses.find(h => h.horse_id === selectedHorse)?.馬名}:{" "}
                     {betAmount.toLocaleString()}¥
                     {winner.horse_id === selectedHorse &&
                       ` → 払戻額: ${(betAmount * (parseFloat(winner.オッズ))).toLocaleString()}¥`}
@@ -447,7 +447,7 @@ const HorseRaceGame: React.FC = () => {
                         : "text-green-700"
                     }
                   >
-                    {horses.find(h => h.horse_id === aiSelectedHorse)?.SF馬名}:{" "}
+                    {horses.find(h => h.horse_id === aiSelectedHorse)?.馬名}:{" "}
                     {AI_BET_AMOUNT.toLocaleString()}¥
                     {winner.horse_id === aiSelectedHorse &&
                       ` → 払戻額: ${(
@@ -474,8 +474,8 @@ const HorseRaceGame: React.FC = () => {
                   <th className="p-2 text-left border-b border-green-700">操縦者</th>
                   <th className="p-2 text-center border-b border-green-700">オッズ</th>
                   <th className="p-2 text-center border-b border-green-700">人気</th>
-                  <th className="p-2 text-center border-b border-green-700">前回</th>
-                  <th className="p-2 text-center border-b border-green-700">前々回</th>
+                  <th className="p-2 text-center border-b border-green-700">前走着順</th>
+                  <th className="p-2 text-center border-b border-green-700">前々走着順</th>
                   <th className="p-2 text-center border-b border-green-700">現状</th>
                 </tr>
               </thead>
@@ -501,9 +501,9 @@ const HorseRaceGame: React.FC = () => {
                     >
                       <td className="p-2 text-green-500">{horse.馬番}</td>
                       <td className="p-2 font-bold whitespace-nowrap">
-                        {isSelected && ">"} {horse.SF馬名} {isSelected && "<"}
+                        {isSelected && ">"} {horse.馬名} {isSelected && "<"}
                       </td>
-                      <td className="p-2 text-green-500 whitespace-nowrap">{horse.SF騎手}</td>
+                      <td className="p-2 text-green-500 whitespace-nowrap">{horse.騎手}</td>
                       <td className="p-2 text-center font-medium text-yellow-500">
                         {horse.オッズ}
                       </td>
@@ -532,12 +532,12 @@ const HorseRaceGame: React.FC = () => {
                         )}
                         {raceFinished && isAiBet && (
                           <span className="inline-block px-2 py-1 bg-red-900 text-red-300 text-xs font-medium rounded">
-                            機械
+                            AI
                           </span>
                         )}
                         {raceFinished && isWinner && (
                           <span className="inline-block px-2 py-1 bg-yellow-800 text-yellow-300 text-xs font-medium rounded ml-1">
-                            収束
+                            1着
                           </span>
                         )}
                       </td>

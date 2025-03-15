@@ -95,7 +95,7 @@ export default function Description({ closeClick }: DescriptionProps) {
     return (
         <div className="relative w-full h-full flex flex-col items-center justify-center bg-black/40">
             {/* 背景コンテナ - 改良したサイズと位置 */}
-            <div className="absolute top-8 w-[90vw] max-w-[900px] h-[68vh] max-h-[680px] bg-black/60 rounded-lg overflow-hidden shadow-xl shadow-cyan-600/50 border border-cyan-700/40">
+            <div className="absolute top-8 w-[90vw] max-w-[500px] h-[68vh] max-h-[400px] bg-black/60 rounded-lg overflow-hidden shadow-xl shadow-cyan-600/50 border border-cyan-700/40">
                 {/* AI背景画像 - より鮮明に */}
                 <div
                     className="absolute w-full h-full bg-center bg-cover opacity-70 mix-blend-screen"
@@ -127,7 +127,7 @@ export default function Description({ closeClick }: DescriptionProps) {
             </div>
             
             {/* テキスト表示部分 - 位置を下に移動して顔と重ならないように・高さを固定 */}
-            <div className="absolute bottom-24 w-[80vw] max-w-[750px] text-center z-10">
+            <div className="absolute bottom-30 w-[80vw] max-w-[750px] text-center z-10">
                 {/* テキストボックス - 高さを固定 */}
                 <div className="bg-gray-900/85 text-white font-mono py-6 px-6 mb-4 border-l-2 border-r-2 border-t border-b-2 border-green-500/70 rounded-lg shadow-lg shadow-green-500/30 h-[150px] flex items-center justify-center">
                     {/* スキャンライン効果 */}

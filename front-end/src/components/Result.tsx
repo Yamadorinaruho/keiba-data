@@ -157,7 +157,7 @@ export default function Result({ winner }: ResultProps) {
 
           {/* テキスト表示部分 */}
           <div className="absolute top-[470px] left-0 right-0 flex justify-center z-10">
-            <div className="bg-gray-900/80 text-white font-mono py-4 px-6 w-[600px] h-[120px] border border-green-500/50 rounded-lg flex items-center justify-center">
+            <div className="bg-gray-900/80 text-white font-mono py-4 px-6 w-[80vw] max-w-[750px] border border-green-500/50 rounded-lg flex items-center justify-center">
               <p className="text-xl leading-relaxed text-center">
                 {text.split("\n").map((line, index) => (
                   <span key={index}>
