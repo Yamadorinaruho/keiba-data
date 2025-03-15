@@ -56,6 +56,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-black relative overflow-hidden">
+      
       {/* スタティックノイズのオーバーレイ */}
       <div className="absolute inset-0 bg-[url(/noise.png)] opacity-10 mix-blend-overlay pointer-events-none"></div>
       
